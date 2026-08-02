@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Air Quality Monitor</title>
+  <style>
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: #0f172a; 
+      color: #f8fafc; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh; 
+      margin: 0; 
+    }
+    .card { 
+      background: #1e293b; 
+      padding: 2.5rem; 
+      border-radius: 16px; 
+      width: 320px; 
+      text-align: center; 
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); 
+    }
+    h2 {
+      margin-top: 0;
+      color: #e2e8f0;
+      font-size: 1.3rem;
+    }
+    .value { 
+      font-size: 3.5rem; 
+      font-weight: bold; 
+      margin: 0.5rem 0 0 0; 
+      color: #38bdf8; 
+    }
+    .sub-val { 
+      color: #94a3b8; 
+      font-size: 1.1rem; 
+      margin-bottom: 1.5rem; 
+    }
+    .label { 
+      color: #94a3b8; 
+      text-transform: uppercase; 
+      letter-spacing: 1.5px; 
+      font-size: 0.8rem; 
+      font-weight: 600;
+    }
+    .status { 
+      font-weight: bold; 
+      font-size: 1.1rem; 
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Air Quality Station</h2>
+    <div class="label">MQ-135 Sensor Reading</div>
+    <div class="value" id="adc-value">--</div>
+    <div class="sub-val" id="voltage-value">0.00 V</div>
+    
+    <div class="label">Status: <span class="status" id="status" style="color:#94a3b8;">Connecting...</span></div>
+  </div>
+
+  <script>
+    // UPDATE THIS WITH YOUR ESP32 IP ADDRESS PRINTED IN SERIAL MONITOR:
+    const esp32Ip = "http://192.168.1.50/data";
+
+    async function fetchData() {
+      try {
+        const res = await fetch(esp32Ip);
+        const data = await res.json();
+        
+        // Update values on web page
+        document.getElementById('adc-value').innerText = data.raw;
+        document.getElementById('voltage-value').innerText = data.voltage + " V";
+        
+        // Update status based on air quality thresholds
+        const statusEl = document.getElementById('status');
+        if (data.raw > 2000) {
+          statusEl.innerText = "Poor / High Gas";
+          statusEl.style.color = "#ef4444"; // Red
+        } else if (data.raw > 1200) {
+          statusEl.innerText = "Moderate";
+          statusEl.style.color = "#f59e0b"; // Orange
+        } else {
+          statusEl.innerText = "Good";
+          statusEl.style.color = "#22c55e"; // Green
+        }
+      } catch (err) {
+        const statusEl = document.getElementById('status');
+        statusEl.innerText = "Offline";
+        statusEl.style.color = "#ef4444";
+      }
+    }
+
+    // Automatically fetch data every 2 seconds
+    setInterval(fetchData, 2000);
+    fetchData(); // Initial load
+  </script>
+
+</body>
+</html>
