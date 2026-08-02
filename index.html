@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Air Quality Monitor</title>
+  <title>Air & Alcohol Quality Monitor</title>
   <style>
     body { 
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -15,89 +15,121 @@
       min-height: 100vh; 
       margin: 0; 
     }
+    .container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
     .card { 
       background: #1e293b; 
-      padding: 2.5rem; 
+      padding: 2rem; 
       border-radius: 16px; 
-      width: 320px; 
+      width: 280px; 
       text-align: center; 
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); 
     }
     h2 {
       margin-top: 0;
       color: #e2e8f0;
-      font-size: 1.3rem;
+      font-size: 1.2rem;
     }
     .value { 
-      font-size: 3.5rem; 
+      font-size: 3rem; 
       font-weight: bold; 
       margin: 0.5rem 0 0 0; 
       color: #38bdf8; 
     }
     .sub-val { 
       color: #94a3b8; 
-      font-size: 1.1rem; 
-      margin-bottom: 1.5rem; 
+      font-size: 1rem; 
+      margin-bottom: 1rem; 
     }
     .label { 
       color: #94a3b8; 
       text-transform: uppercase; 
       letter-spacing: 1.5px; 
-      font-size: 0.8rem; 
+      font-size: 0.75rem; 
       font-weight: 600;
     }
     .status { 
       font-weight: bold; 
-      font-size: 1.1rem; 
+      font-size: 1rem; 
     }
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <h2>Air Quality Station</h2>
-    <div class="label">MQ-135 Sensor Reading</div>
-    <div class="value" id="adc-value">--</div>
-    <div class="sub-val" id="voltage-value">0.00 V</div>
-    
-    <div class="label">Status: <span class="status" id="status" style="color:#94a3b8;">Connecting...</span></div>
+  <div class="container">
+    <!-- MQ-135 Card -->
+    <div class="card">
+      <h2>Air Quality (MQ-135)</h2>
+      <div class="label">Raw Reading</div>
+      <div class="value" id="mq135-value">--</div>
+      <div class="sub-val" id="mq135-voltage">0.00 V</div>
+      <div class="label">Status: <span class="status" id="mq135-status" style="color:#94a3b8;">Connecting...</span></div>
+    </div>
+
+    <!-- MQ-3 Card -->
+    <div class="card">
+      <h2>Alcohol (MQ-3)</h2>
+      <div class="label">Raw Reading</div>
+      <div class="value" id="mq3-value" style="color: #f43f5e;">--</div>
+      <div class="sub-val" id="mq3-voltage">0.00 V</div>
+      <div class="label">Status: <span class="status" id="mq3-status" style="color:#94a3b8;">Connecting...</span></div>
+    </div>
   </div>
 
   <script>
-    // UPDATE THIS WITH YOUR ESP32 IP ADDRESS PRINTED IN SERIAL MONITOR:
-    const esp32Ip = "http://192.168.1.50/data";
+    // UPDATE WITH YOUR ESP32 LAN IP ADDRESS:
+    const esp32Ip = "http://192.168.137.222/data";
 
     async function fetchData() {
       try {
         const res = await fetch(esp32Ip);
         const data = await res.json();
         
-        // Update values on web page
-        document.getElementById('adc-value').innerText = data.raw;
-        document.getElementById('voltage-value').innerText = data.voltage + " V";
-        
-        // Update status based on air quality thresholds
-        const statusEl = document.getElementById('status');
-        if (data.raw > 2000) {
-          statusEl.innerText = "Poor / High Gas";
-          statusEl.style.color = "#ef4444"; // Red
-        } else if (data.raw > 1200) {
-          statusEl.innerText = "Moderate";
-          statusEl.style.color = "#f59e0b"; // Orange
+        // Update MQ-135 UI
+        document.getElementById('mq135-value').innerText = data.mq135_raw;
+        document.getElementById('mq135-voltage').innerText = data.mq135_volts + " V";
+        const mq135Status = document.getElementById('mq135-status');
+        if (data.mq135_raw > 2000) {
+          mq135Status.innerText = "Poor / High Gas";
+          mq135Status.style.color = "#ef4444";
+        } else if (data.mq135_raw > 1200) {
+          mq135Status.innerText = "Moderate";
+          mq135Status.style.color = "#f59e0b";
         } else {
-          statusEl.innerText = "Good";
-          statusEl.style.color = "#22c55e"; // Green
+          mq135Status.innerText = "Good";
+          mq135Status.style.color = "#22c55e";
         }
+
+        // Update MQ-3 UI
+        document.getElementById('mq3-value').innerText = data.mq3_raw;
+        document.getElementById('mq3-voltage').innerText = data.mq3_volts + " V";
+        const mq3Status = document.getElementById('mq3-status');
+        if (data.mq3_raw > 2500) {
+          mq3Status.innerText = "High Alcohol Detected";
+          mq3Status.style.color = "#ef4444";
+        } else if (data.mq3_raw > 1500) {
+          mq3Status.innerText = "Moderate Level";
+          mq3Status.style.color = "#f59e0b";
+        } else {
+          mq3Status.innerText = "Normal";
+          mq3Status.style.color = "#22c55e";
+        }
+
       } catch (err) {
-        const statusEl = document.getElementById('status');
-        statusEl.innerText = "Offline";
-        statusEl.style.color = "#ef4444";
+        document.getElementById('mq135-status').innerText = "Offline";
+        document.getElementById('mq135-status').style.color = "#ef4444";
+        document.getElementById('mq3-status').innerText = "Offline";
+        document.getElementById('mq3-status').style.color = "#ef4444";
       }
     }
 
-    // Automatically fetch data every 2 seconds
+    // Refresh data every 2 seconds
     setInterval(fetchData, 2000);
-    fetchData(); // Initial load
+    fetchData();
   </script>
 
 </body>
